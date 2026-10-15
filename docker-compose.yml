@@ -1,0 +1,36 @@
+services:
+  leadflux:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: leadflux-app
+    restart: always
+    ports:
+      - "3005:3000"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.75'
+          memory: 512M
+    env_file:
+      - .env
+    labels:
+      - "traefik.enable=true"
+      # HTTPS
+      - "traefik.http.routers.leadflux-secure.rule=Host(`leadflux.cabanalink.com`)"
+      - "traefik.http.routers.leadflux-secure.entrypoints=websecure"
+      - "traefik.http.routers.leadflux-secure.tls=true"
+      - "traefik.http.routers.leadflux-secure.tls.certresolver=leresolver"
+      # Redirecionamento HTTP -> HTTPS
+      - "traefik.http.routers.leadflux-http.rule=Host(`leadflux.cabanalink.com`)"
+      - "traefik.http.routers.leadflux-http.entrypoints=web"
+      - "traefik.http.routers.leadflux-http.middlewares=redirect-to-https@docker"
+      # Porta do serviço
+      - "traefik.http.services.leadflux-service.loadbalancer.server.port=3000"
+      - "traefik.docker.network=leadflux-network"
+    networks:
+      - leadflux-network
+
+networks:
+  leadflux-network:
+    external: true
