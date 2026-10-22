@@ -1,11 +1,15 @@
 'use client'
 
-import { Users, CheckCircle2, TrendingUp, DollarSign } from 'lucide-react'
+import { Users, TrendingUp, DollarSign } from 'lucide-react'
 
 export interface MetricsData {
+  totalLeads?: number
   totalTests: number
   totalPaid: number
   conversionRate: number
+  convToTest?: number
+  testToPaid?: number
+  convToPaid?: number
   totalRevenue: number
 }
 
@@ -15,77 +19,129 @@ interface MetricsCardsProps {
 }
 
 export function MetricsCards({ metrics, isLoading = false }: MetricsCardsProps) {
-  const cards = [
-    {
-      title: 'Testes Liberados',
-      value: metrics.totalTests,
-      formatter: (v: number) => v.toLocaleString('pt-BR'),
-      icon: Users,
-      color: 'from-amber-500/20 to-orange-500/10 text-amber-400 border-amber-500/30',
-      badge: 'StartTrial CAPI',
-      badgeColor: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-    },
-    {
-      title: 'Assinaturas Fechadas',
-      value: metrics.totalPaid,
-      formatter: (v: number) => v.toLocaleString('pt-BR'),
-      icon: CheckCircle2,
-      color: 'from-emerald-500/20 to-teal-500/10 text-emerald-400 border-emerald-500/30',
-      badge: 'Purchase CAPI',
-      badgeColor: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-    },
-    {
-      title: 'Taxa de Conversão',
-      value: metrics.conversionRate,
-      formatter: (v: number) => `${v.toFixed(1)}%`,
-      icon: TrendingUp,
-      color: 'from-cyan-500/20 to-blue-500/10 text-cyan-400 border-cyan-500/30',
-      badge: 'Teste → Pago',
-      badgeColor: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
-    },
-    {
-      title: 'Faturamento Total',
-      value: metrics.totalRevenue,
-      formatter: (v: number) =>
-        `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-      icon: DollarSign,
-      color: 'from-purple-500/20 to-pink-500/10 text-purple-400 border-purple-500/30',
-      badge: 'R$ 29,00 / mês',
-      badgeColor: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
-    },
-  ]
+  const convToTest = metrics.convToTest ?? 0
+  const testToPaid = metrics.testToPaid ?? metrics.conversionRate ?? 0
+  const convToPaid = metrics.convToPaid ?? 0
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 md:gap-6">
-      {cards.map((card) => {
-        const Icon = card.icon
-        return (
-          <div
-            key={card.title}
-            className="relative overflow-hidden rounded-xl sm:rounded-2xl bg-slate-900/60 border border-slate-800/80 p-3 sm:p-5 md:p-6 backdrop-blur-md transition-all hover:border-slate-700/80"
-          >
-            <div className="flex items-center justify-between gap-1 mb-2 sm:mb-4">
-              <span className="text-xs sm:text-sm font-medium text-slate-400 line-clamp-1">
-                {card.title}
-              </span>
-              <div className={`p-1.5 sm:p-2.5 rounded-lg sm:rounded-xl border bg-gradient-to-br ${card.color} shrink-0`}>
-                <Icon className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
-              </div>
-            </div>
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 sm:gap-4 md:gap-5">
+      {/* 1. Card Funil de Leads: Branco com texto escuro invertido */}
+      <div className="relative overflow-hidden rounded-xl bg-white border border-zinc-200 p-4 sm:p-5 hover:border-zinc-300 transition-all flex flex-col justify-between shadow-md">
+        <div className="flex items-center justify-between gap-1 mb-3">
+          <span className="text-xs font-bold uppercase tracking-wider text-zinc-600">
+            Funil de Leads
+          </span>
+          <div className="p-1.5 rounded-lg bg-zinc-900 text-[#D6FF00] shrink-0 shadow-sm">
+            <Users className="w-4 h-4" />
+          </div>
+        </div>
 
-            <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1.5">
-              <span className="text-lg sm:text-2xl md:text-3xl font-bold tracking-tight text-white">
-                {isLoading ? '...' : card.formatter(card.value)}
+        <div className="space-y-2.5 text-xs">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-zinc-900" />
+              <span className="text-zinc-700 font-medium">Total de Leads</span>
+            </div>
+            <span className="font-extrabold text-zinc-950 text-sm sm:text-base">
+              {isLoading ? '...' : (metrics.totalLeads ?? 0).toLocaleString('pt-BR')}
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-zinc-900" />
+              <span className="text-zinc-700 font-medium">Testes Liberados</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="font-extrabold text-zinc-950 text-sm sm:text-base">
+                {isLoading ? '...' : metrics.totalTests.toLocaleString('pt-BR')}
               </span>
-              <span
-                className={`text-[9px] sm:text-[11px] font-semibold px-1.5 py-0.5 rounded-full border self-start sm:self-auto ${card.badgeColor}`}
-              >
-                {card.badge}
+              <span className="text-[10px] font-bold text-zinc-800 px-1.5 py-0.2 rounded border border-zinc-300 bg-zinc-100">
+                LeadSubmitted
               </span>
             </div>
           </div>
-        )
-      })}
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-zinc-900" />
+              <span className="text-zinc-700 font-medium">Assinaturas Fechadas</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="font-extrabold text-zinc-950 text-sm sm:text-base">
+                {isLoading ? '...' : metrics.totalPaid.toLocaleString('pt-BR')}
+              </span>
+              <span className="text-[10px] font-bold text-zinc-950 px-1.5 py-0.2 rounded bg-[#D6FF00] shadow-sm">
+                Purchase
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. Card Taxas de Conversão: Preto com destaque Neon */}
+      <div className="relative overflow-hidden rounded-xl bg-[#121212] border border-[#242424] p-4 sm:p-5 hover:border-[#383838] transition-all flex flex-col justify-between shadow-md">
+        <div className="flex items-center justify-between gap-1 mb-3">
+          <span className="text-xs font-semibold uppercase tracking-wider text-[#BCBCBC]">
+            Taxas de Conversão
+          </span>
+          <div className="p-1.5 rounded-lg border bg-[#1a1a1a] border-[#2c2c2c] text-[#D6FF00] shrink-0">
+            <TrendingUp className="w-4 h-4" />
+          </div>
+        </div>
+
+        <div className="space-y-2.5 text-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-zinc-300 font-medium">Conversa → Teste</span>
+            <span className="font-bold text-[#D6FF00] text-sm sm:text-base">
+              {isLoading ? '...' : `${convToTest.toFixed(1)}%`}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-zinc-300 font-medium">Teste → Pago</span>
+            <span className="font-bold text-white text-sm sm:text-base">
+              {isLoading ? '...' : `${testToPaid.toFixed(1)}%`}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-zinc-300 font-medium">Conversa → Pago</span>
+            <span className="font-bold text-[#D6FF00] text-sm sm:text-base">
+              {isLoading ? '...' : `${convToPaid.toFixed(1)}%`}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Card Faturamento Total: Cinza Prata (#BCBCBC) com texto escuro invertido */}
+      <div className="relative overflow-hidden rounded-xl bg-[#BCBCBC] border border-[#a8a8a8] p-4 sm:p-5 hover:border-[#969696] transition-all flex flex-col justify-between shadow-md">
+        <div className="flex items-center justify-between gap-1 mb-3">
+          <span className="text-xs font-bold uppercase tracking-wider text-zinc-800">
+            Faturamento Total
+          </span>
+          <div className="p-1.5 rounded-lg bg-zinc-950 text-[#D6FF00] shrink-0 shadow-sm">
+            <DollarSign className="w-4 h-4" />
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <div className="flex items-baseline justify-between">
+            <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-zinc-950">
+              {isLoading
+                ? '...'
+                : `R$ ${metrics.totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+            </span>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-zinc-950 text-[#D6FF00] shadow-sm">
+              R$ 29 / mês
+            </span>
+          </div>
+          <div className="flex items-center justify-between text-xs text-zinc-700 pt-2 border-t border-zinc-400">
+            <span className="text-[11px] uppercase tracking-wider font-semibold">Assinaturas Ativas</span>
+            <span className="font-extrabold text-zinc-950">
+              {isLoading ? '...' : `${metrics.totalPaid} ${metrics.totalPaid === 1 ? 'cliente' : 'clientes'}`}
+            </span>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

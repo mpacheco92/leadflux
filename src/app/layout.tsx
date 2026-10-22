@@ -10,10 +10,12 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "LeadFlux | CRM WhatsApp & Meta Ads",
-  description: "CRM de Conversão WhatsApp e Atribuição Meta Ads",
+  title: "LeadFlux | CRM TECH",
+  description: "CRM TECH de Conversão WhatsApp e Atribuição Meta Ads",
   icons: {
     icon: "/icon.svg",
+    shortcut: "/icon.svg",
+    apple: "/icon.svg",
   },
 };
 

@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #020617;
-  --foreground: #f8fafc;
+  --background: #0d0d0d;
+  --foreground: #ffffff;
 }
 
 @theme inline {
@@ -15,4 +15,5 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-dm-sans), "DM Sans", Roboto, sans-serif;
+  letter-spacing: -0.01em;
 }

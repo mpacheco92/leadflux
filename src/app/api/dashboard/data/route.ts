@@ -18,18 +18,31 @@ export async function GET() {
     const leads = leadsRes.data || []
     const logs = logsRes.data || []
 
+    const totalLeads = leads.length
     const totalTests = leads.filter(
-      (l) => l.status === 'teste_ativo' || l.status === 'pago'
+      (l) => l.status === 'teste_ativo' || l.status === 'pago' || l.trial_started_at !== null
     ).length
-    const totalPaid = leads.filter((l) => l.status === 'pago').length
-    const conversionRate = totalTests > 0 ? (totalPaid / totalTests) * 100 : 0
+    const totalPaid = leads.filter((l) => l.status === 'pago' || l.paid_at !== null).length
+
+    // Conversões do funil:
+    // 1. Conversa -> Teste
+    const convToTest = totalLeads > 0 ? (totalTests / totalLeads) * 100 : 0
+    // 2. Teste -> Pago
+    const testToPaid = totalTests > 0 ? (totalPaid / totalTests) * 100 : 0
+    // 3. Conversa -> Pago
+    const convToPaid = totalLeads > 0 ? (totalPaid / totalLeads) * 100 : 0
+
     const totalRevenue = totalPaid * 29.0
 
     return NextResponse.json({
       metrics: {
+        totalLeads,
         totalTests,
         totalPaid,
-        conversionRate,
+        conversionRate: testToPaid,
+        convToTest,
+        testToPaid,
+        convToPaid,
         totalRevenue,
       },
       leads,

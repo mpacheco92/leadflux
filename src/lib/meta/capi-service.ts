@@ -1,14 +1,16 @@
-import { hashPhone } from '@/lib/meta/formatters'
+import { hashPhone, normalizeCtwaClid } from '@/lib/meta/formatters'
 import { supabaseAdmin } from '@/lib/supabase/server'
 
 interface CapiEventOptions {
-  eventName: 'StartTrial' | 'Purchase'
+  eventName: 'LeadSubmitted' | 'Purchase'
   phone: string
   leadId: string
   value?: number
   currency?: string
   ctwaClid?: string
 }
+
+const META_PAGE_ID = process.env.META_PAGE_ID || '294634100390047'
 
 export async function sendMetaCapiEvent({
   eventName,
@@ -28,21 +30,30 @@ export async function sendMetaCapiEvent({
   }
 
   const phoneHash = hashPhone(phone)
+  const cleanCtwa = normalizeCtwaClid(ctwaClid)
   const currentTimestamp = Math.floor(Date.now() / 1000)
 
   const eventData: Record<string, any> = {
     event_name: eventName,
     event_time: currentTimestamp,
-    action_source: 'chat',
+    action_source: 'website',
+    event_source_url: 'https://leadflux.cabanalink.com',
     user_data: {
       ph: [phoneHash],
     },
   }
 
-  if (value !== undefined || ctwaClid) {
+  if (eventName === 'LeadSubmitted') {
     eventData.custom_data = {
-      ...(value !== undefined ? { value, currency } : {}),
-      ...(ctwaClid ? { ctwa_clid: ctwaClid } : {}),
+      origem: 'crm',
+      ...(cleanCtwa ? { ctwa_clid: cleanCtwa } : {}),
+    }
+  } else if (eventName === 'Purchase') {
+    eventData.custom_data = {
+      value: value ?? 29.0,
+      currency,
+      origem: 'crm',
+      ...(cleanCtwa ? { ctwa_clid: cleanCtwa } : {}),
     }
   }
 
@@ -56,7 +67,7 @@ export async function sendMetaCapiEvent({
 
   try {
     const response = await fetch(
-      `https://graph.facebook.com/v19.0/${pixelId}/events?access_token=${accessToken}`,
+      `https://graph.facebook.com/v21.0/${pixelId}/events?access_token=${accessToken}`,
       {
         method: 'POST',
         headers: {
@@ -96,9 +107,9 @@ export async function sendMetaCapiEvent({
   }
 }
 
-export async function sendStartTrialEvent(phone: string, leadId: string, ctwaClid?: string) {
+export async function sendLeadSubmittedEvent(phone: string, leadId: string, ctwaClid?: string) {
   return sendMetaCapiEvent({
-    eventName: 'StartTrial',
+    eventName: 'LeadSubmitted',
     phone,
     leadId,
     ctwaClid,

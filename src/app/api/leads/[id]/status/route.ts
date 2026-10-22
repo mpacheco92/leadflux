@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/server'
-import { sendPurchaseEvent, sendStartTrialEvent } from '@/lib/meta/capi-service'
+import { sendPurchaseEvent, sendLeadSubmittedEvent } from '@/lib/meta/capi-service'
 
 export async function PATCH(
   request: NextRequest,
@@ -42,8 +42,8 @@ export async function PATCH(
       updates.paid_at = null
       if (!lead.trial_started_at) {
         updates.trial_started_at = now
-        capiPromise = sendStartTrialEvent(lead.phone, lead.id, lead.ctwa || undefined)
       }
+      capiPromise = sendLeadSubmittedEvent(lead.phone, lead.id, lead.ctwa || undefined)
     } else if (status === 'novo_lead') {
       updates.paid_at = null
       updates.trial_started_at = null

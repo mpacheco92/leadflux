@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { supabaseAdmin } from '@/lib/supabase/server'
-import { normalizePhone } from '@/lib/meta/formatters'
-import { sendStartTrialEvent } from '@/lib/meta/capi-service'
+import { normalizePhone, normalizeCtwaClid } from '@/lib/meta/formatters'
+import { sendLeadSubmittedEvent } from '@/lib/meta/capi-service'
 
 const trialSchema = z.object({
   phone: z.string().min(8, 'Telefone inválido'),
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
 
     const phone = normalizePhone(parsed.data.phone)
     const name = parsed.data.name?.trim() || null
-    const ctwaClid = parsed.data.ctwa_clid?.trim() || null
+    const ctwaClid = normalizeCtwaClid(parsed.data.ctwa_clid)
 
     // 1. Salva ou atualiza o lead no Supabase como 'teste_ativo'
     const { data: lead, error: dbError } = await supabaseAdmin
@@ -58,8 +58,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Erro ao salvar lead' }, { status: 500 })
     }
 
-    // 2. Dispara o evento StartTrial para a Meta Conversions API com ctwa_clid
-    const capiResult = await sendStartTrialEvent(phone, lead.id, ctwaClid || undefined)
+    // 2. Dispara o evento LeadSubmitted para a Meta Conversions API com ctwa_clid
+    const capiResult = await sendLeadSubmittedEvent(phone, lead.id, ctwaClid || undefined)
 
     return NextResponse.json({
       success: true,
