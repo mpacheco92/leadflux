@@ -64,13 +64,16 @@ export function LeadsTable({ leads, onLeadUpdated }: LeadsTableProps) {
   const [copiedPhone, setCopiedPhone] = useState<string | null>(null)
 
   async function handleCopyPhone(phone: string) {
+    const digits = phone.replace(/\D/g, '')
+    const cleanPhone = digits.startsWith('55') ? digits : `55${digits}`
+
     try {
-      await navigator.clipboard.writeText(phone)
+      await navigator.clipboard.writeText(cleanPhone)
       setCopiedPhone(phone)
       setTimeout(() => setCopiedPhone(null), 2000)
     } catch {
       const textArea = document.createElement('textarea')
-      textArea.value = phone
+      textArea.value = cleanPhone
       document.body.appendChild(textArea)
       textArea.select()
       document.execCommand('copy')
@@ -212,8 +215,14 @@ export function LeadsTable({ leads, onLeadUpdated }: LeadsTableProps) {
   }
 
   function formatPhone(phone: string) {
-    if (phone.length === 13 && phone.startsWith('55')) {
-      return `+55 (${phone.slice(2, 4)}) ${phone.slice(4, 9)}-${phone.slice(9)}`
+    const digits = phone.replace(/\D/g, '')
+    const withDdi = digits.startsWith('55') ? digits : `55${digits}`
+
+    if (withDdi.length === 13) {
+      return `+55 (${withDdi.slice(2, 4)}) ${withDdi.slice(4, 9)}-${withDdi.slice(9)}`
+    }
+    if (withDdi.length === 12) {
+      return `+55 (${withDdi.slice(2, 4)}) ${withDdi.slice(4, 8)}-${withDdi.slice(8)}`
     }
     return phone
   }

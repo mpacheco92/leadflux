@@ -52,8 +52,10 @@ export function FollowupTable({ followups, loading = false }: FollowupTableProps
   }
 
   async function handleCopyPhone(phone: string) {
+    const digits = phone.replace(/\D/g, '')
+    const cleanPhone = digits.startsWith('55') ? digits : `55${digits}`
     try {
-      await navigator.clipboard.writeText(phone)
+      await navigator.clipboard.writeText(cleanPhone)
       setCopiedPhone(phone)
       setTimeout(() => setCopiedPhone(null), 2000)
     } catch {
