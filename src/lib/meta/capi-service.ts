@@ -36,24 +36,28 @@ export async function sendMetaCapiEvent({
   const eventData: Record<string, any> = {
     event_name: eventName,
     event_time: currentTimestamp,
-    action_source: 'website',
-    event_source_url: 'https://leadflux.cabanalink.com',
-    user_data: {
-      ph: [phoneHash],
-    },
+    ...(cleanCtwa
+      ? {
+          action_source: 'business_messaging',
+          messaging_channel: 'whatsapp',
+          user_data: {
+            ph: [phoneHash],
+            ctwa_clid: cleanCtwa,
+            page_id: META_PAGE_ID,
+          },
+        }
+      : {
+          action_source: 'system_generated',
+          user_data: {
+            ph: [phoneHash],
+          },
+        }),
   }
 
-  if (eventName === 'LeadSubmitted') {
-    eventData.custom_data = {
-      origem: 'crm',
-      ...(cleanCtwa ? { ctwa_clid: cleanCtwa } : {}),
-    }
-  } else if (eventName === 'Purchase') {
+  if (eventName === 'Purchase') {
     eventData.custom_data = {
       value: value ?? 29.0,
       currency,
-      origem: 'crm',
-      ...(cleanCtwa ? { ctwa_clid: cleanCtwa } : {}),
     }
   }
 

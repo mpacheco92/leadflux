@@ -6,6 +6,7 @@ import { RefreshCw, MessageSquare } from 'lucide-react'
 
 export default function FollowupDashboardPage() {
   const [followups, setFollowups] = useState<FollowupRecord[]>([])
+  const [scheduled, setScheduled] = useState<FollowupRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
 
@@ -15,6 +16,7 @@ export default function FollowupDashboardPage() {
       if (res.ok) {
         const data = await res.json()
         setFollowups(data.followups || [])
+        setScheduled(data.scheduled || [])
       }
     } catch (err) {
       console.error('Erro ao carregar dados de follow-up:', err)
@@ -59,7 +61,7 @@ export default function FollowupDashboardPage() {
       </div>
 
       {/* Tabela de Followups com paginação e modal */}
-      <FollowupTable followups={followups} loading={loading} />
+      <FollowupTable followups={followups} scheduled={scheduled} loading={loading} />
     </div>
   )
 }

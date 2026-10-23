@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
           phone,
           name,
           status: 'teste_ativo',
-          ctwa: ctwaClid,
+          ...(ctwaClid ? { ctwa: ctwaClid } : {}),
           trial_started_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         },
@@ -59,7 +59,11 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Dispara o evento LeadSubmitted para a Meta Conversions API com ctwa_clid
-    const capiResult = await sendLeadSubmittedEvent(phone, lead.id, ctwaClid || undefined)
+    const capiResult = await sendLeadSubmittedEvent(
+      phone,
+      lead.id,
+      ctwaClid || lead.ctwa || undefined
+    )
 
     return NextResponse.json({
       success: true,

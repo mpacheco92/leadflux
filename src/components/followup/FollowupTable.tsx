@@ -12,6 +12,8 @@ import {
   Check,
   Eye,
   Sparkles,
+  Send,
+  CalendarCheck,
 } from 'lucide-react'
 
 export interface FollowupRecord {
@@ -22,16 +24,23 @@ export interface FollowupRecord {
   currentStatus: string
   grupo: 'grupo1' | 'grupo2' | string
   msgNumber: number
-  sentAt: string
+  sentAt?: string
+  scheduledFor?: string
   messageText: string
 }
 
 interface FollowupTableProps {
   followups: FollowupRecord[]
+  scheduled?: FollowupRecord[]
   loading?: boolean
 }
 
-export function FollowupTable({ followups, loading = false }: FollowupTableProps) {
+export function FollowupTable({
+  followups = [],
+  scheduled = [],
+  loading = false,
+}: FollowupTableProps) {
+  const [mainTab, setMainTab] = useState<'a_enviar' | 'enviado'>('a_enviar')
   const [searchTerm, setSearchTerm] = useState('')
   const [grupoFilter, setGrupoFilter] = useState<'all' | 'grupo1' | 'grupo2'>('all')
   const [currentPage, setCurrentPage] = useState(1)
@@ -63,7 +72,9 @@ export function FollowupTable({ followups, loading = false }: FollowupTableProps
     }
   }
 
-  const filteredItems = followups.filter((item) => {
+  const currentDataset = mainTab === 'a_enviar' ? scheduled : followups
+
+  const filteredItems = currentDataset.filter((item) => {
     const matchesGrupo =
       grupoFilter === 'all' ? true : item.grupo === grupoFilter
 
@@ -80,7 +91,7 @@ export function FollowupTable({ followups, loading = false }: FollowupTableProps
     currentPage * itemsPerPage
   )
 
-  function formatDateTime(dateString: string) {
+  function formatDateTime(dateString?: string) {
     if (!dateString) return '-'
     const d = new Date(dateString)
     return d.toLocaleString('pt-BR', {
@@ -89,6 +100,17 @@ export function FollowupTable({ followups, loading = false }: FollowupTableProps
       hour: '2-digit',
       minute: '2-digit',
     })
+  }
+
+  function formatScheduledTime(dateString?: string) {
+    if (!dateString) return '-'
+    const d = new Date(dateString)
+    const timeStr = d.toLocaleTimeString('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+    return `Hoje às ${timeStr}`
   }
 
   function formatPhone(phone: string) {
@@ -103,28 +125,85 @@ export function FollowupTable({ followups, loading = false }: FollowupTableProps
     return phone
   }
 
+  function handleMainTabChange(tab: 'a_enviar' | 'enviado') {
+    setMainTab(tab)
+    setCurrentPage(1)
+  }
+
   return (
     <div className="bg-[#121212] border border-[#242424] rounded-2xl overflow-hidden shadow-2xl">
-      {/* Header com Filtros e Busca */}
+      {/* Header com os dois botões principais ("A enviar" e "Enviado"), Filtros e Busca */}
       <div className="p-4 sm:p-6 border-b border-[#242424] space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        {/* Linha 1: Título e Botões Principais */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
             <h2 className="text-lg font-bold text-white tracking-wide flex items-center gap-2">
               <MessageSquare className="w-5 h-5 text-[#D6FF00]" />
-              Envios de Follow-up
+              {mainTab === 'a_enviar' ? 'Follow-ups a Enviar' : 'Envios de Follow-up'}
             </h2>
             <p className="text-xs text-[#BCBCBC]/70 mt-0.5">
-              Histórico detalhado de disparos automáticos para cada lead
+              {mainTab === 'a_enviar'
+                ? 'Mensagens programadas para serem enviadas no dia atual'
+                : 'Histórico detalhado de disparos automáticos para cada lead'}
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-[#BCBCBC] bg-[#1a1a1a] px-3 py-1.5 rounded-lg border border-[#2a2a2a]">
-              Total de envios: <strong className="text-white">{filteredItems.length}</strong>
-            </span>
+          {/* Botões Principais: A enviar e Enviado */}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-1.5 p-1 bg-[#181818] rounded-xl border border-[#282828]">
+              <button
+                onClick={() => handleMainTabChange('a_enviar')}
+                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  mainTab === 'a_enviar'
+                    ? 'bg-[#D6FF00] text-black shadow-sm'
+                    : 'text-[#BCBCBC] hover:text-white'
+                }`}
+              >
+                <Clock className="w-3.5 h-3.5" />
+                <span>A enviar</span>
+                <span
+                  className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                    mainTab === 'a_enviar'
+                      ? 'bg-black/20 text-black'
+                      : 'bg-[#252525] text-[#BCBCBC]'
+                  }`}
+                >
+                  {scheduled.length}
+                </span>
+              </button>
+
+              <button
+                onClick={() => handleMainTabChange('enviado')}
+                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  mainTab === 'enviado'
+                    ? 'bg-[#D6FF00] text-black shadow-sm'
+                    : 'text-[#BCBCBC] hover:text-white'
+                }`}
+              >
+                <Send className="w-3.5 h-3.5" />
+                <span>Enviado</span>
+                <span
+                  className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                    mainTab === 'enviado'
+                      ? 'bg-black/20 text-black'
+                      : 'bg-[#252525] text-[#BCBCBC]'
+                  }`}
+                >
+                  {followups.length}
+                </span>
+              </button>
+            </div>
+
+            <div className="flex items-center">
+              <span className="text-xs text-[#BCBCBC] bg-[#1a1a1a] px-3 py-1.5 rounded-lg border border-[#2a2a2a]">
+                {mainTab === 'a_enviar' ? 'Programados hoje: ' : 'Total de envios: '}
+                <strong className="text-white">{filteredItems.length}</strong>
+              </span>
+            </div>
           </div>
         </div>
 
+        {/* Linha 2: Sub-filtros por grupo e Busca */}
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 pt-2">
           {/* Tabs de Filtro de Grupo */}
           <div className="flex items-center gap-1.5 p-1 bg-[#181818] rounded-xl border border-[#242424] w-fit">
@@ -135,11 +214,11 @@ export function FollowupTable({ followups, loading = false }: FollowupTableProps
               }}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 grupoFilter === 'all'
-                  ? 'bg-[#D6FF00] text-black shadow-sm'
+                  ? 'bg-[#282828] text-white border border-[#383838]'
                   : 'text-[#BCBCBC] hover:text-white'
               }`}
             >
-              Todos ({followups.length})
+              Todos ({currentDataset.length})
             </button>
             <button
               onClick={() => {
@@ -148,7 +227,7 @@ export function FollowupTable({ followups, loading = false }: FollowupTableProps
               }}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 grupoFilter === 'grupo1'
-                  ? 'bg-[#D6FF00] text-black shadow-sm'
+                  ? 'bg-[#282828] text-white border border-[#383838]'
                   : 'text-[#BCBCBC] hover:text-white'
               }`}
             >
@@ -161,7 +240,7 @@ export function FollowupTable({ followups, loading = false }: FollowupTableProps
               }}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 grupoFilter === 'grupo2'
-                  ? 'bg-[#D6FF00] text-black shadow-sm'
+                  ? 'bg-[#282828] text-white border border-[#383838]'
                   : 'text-[#BCBCBC] hover:text-white'
               }`}
             >
@@ -195,7 +274,9 @@ export function FollowupTable({ followups, loading = false }: FollowupTableProps
               <th className="py-3.5 px-4 sm:px-6">Telefone / WhatsApp</th>
               <th className="py-3.5 px-4 sm:px-6">Status / Grupo</th>
               <th className="py-3.5 px-4 sm:px-6">Mensagem</th>
-              <th className="py-3.5 px-4 sm:px-6">Horário do Envio</th>
+              <th className="py-3.5 px-4 sm:px-6">
+                {mainTab === 'a_enviar' ? 'Horário Previsto' : 'Horário do Envio'}
+              </th>
               <th className="py-3.5 px-4 sm:px-6 text-right">Ação</th>
             </tr>
           </thead>
@@ -209,7 +290,9 @@ export function FollowupTable({ followups, loading = false }: FollowupTableProps
             ) : paginatedItems.length === 0 ? (
               <tr>
                 <td colSpan={6} className="py-12 text-center text-[#BCBCBC]/60">
-                  Nenhum envio de follow-up encontrado.
+                  {mainTab === 'a_enviar'
+                    ? 'Nenhum follow-up programado para envio no dia atual.'
+                    : 'Nenhum envio de follow-up encontrado.'}
                 </td>
               </tr>
             ) : (
@@ -267,18 +350,22 @@ export function FollowupTable({ followups, loading = false }: FollowupTableProps
                       )}
                     </td>
 
-                    {/* Mensagem enviada */}
+                    {/* Mensagem enviada / programada */}
                     <td className="py-3.5 px-4 sm:px-6">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-[#1e1e1e] border border-[#333] text-white">
                         MSG {item.msgNumber}
                       </span>
                     </td>
 
-                    {/* Horário */}
+                    {/* Horário (Envio ou Previsto) */}
                     <td className="py-3.5 px-4 sm:px-6 text-[#BCBCBC]">
                       <div className="flex items-center gap-1.5">
-                        <Clock className="w-3.5 h-3.5 text-[#BCBCBC]/60" />
-                        <span>{formatDateTime(item.sentAt)}</span>
+                        <Clock className={`w-3.5 h-3.5 ${mainTab === 'a_enviar' ? 'text-[#D6FF00]' : 'text-[#BCBCBC]/60'}`} />
+                        <span className={mainTab === 'a_enviar' ? 'text-white font-medium' : ''}>
+                          {mainTab === 'a_enviar'
+                            ? formatScheduledTime(item.scheduledFor)
+                            : formatDateTime(item.sentAt)}
+                        </span>
                       </div>
                     </td>
 
@@ -324,7 +411,7 @@ export function FollowupTable({ followups, loading = false }: FollowupTableProps
         </div>
       </div>
 
-      {/* Modal para Visualização da Mensagem Enviada */}
+      {/* Modal para Visualização da Mensagem */}
       {selectedItem && (
         <div
           className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150"
@@ -339,13 +426,17 @@ export function FollowupTable({ followups, loading = false }: FollowupTableProps
               <div>
                 <span className="text-[10px] uppercase font-bold tracking-widest text-[#D6FF00] flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5" />
-                  Mensagem Disparada no WhatsApp
+                  {mainTab === 'a_enviar'
+                    ? 'Mensagem Programada para Hoje'
+                    : 'Mensagem Disparada no WhatsApp'}
                 </span>
                 <h3 className="text-base font-bold text-white mt-1">
                   {selectedItem.name || 'Contato WhatsApp'} &bull; MSG {selectedItem.msgNumber}
                 </h3>
                 <p className="text-xs text-[#BCBCBC]/70 mt-0.5">
-                  Enviada em {formatDateTime(selectedItem.sentAt)} para {formatPhone(selectedItem.phone)}
+                  {mainTab === 'a_enviar'
+                    ? `Previsto para ${formatScheduledTime(selectedItem.scheduledFor)} para ${formatPhone(selectedItem.phone)}`
+                    : `Enviada em ${formatDateTime(selectedItem.sentAt)} para ${formatPhone(selectedItem.phone)}`}
                 </p>
               </div>
 
