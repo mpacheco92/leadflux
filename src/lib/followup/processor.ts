@@ -235,12 +235,22 @@ async function processGrupo(
   }
   query = query.not(dateField, 'is', null)
 
-  const { data: leads, error } = await query
+  const { data: rawLeads, error } = await query
   if (error) {
     result.errors.push(`Erro ao buscar leads do ${grupo}: ${error.message}`)
     return
   }
-  if (!leads || leads.length === 0) return
+  if (!rawLeads || rawLeads.length === 0) return
+
+  // Deduplica leads por phone — mantém apenas o mais recente (por updated_at)
+  const leadsByPhone = new Map<string, any>()
+  for (const lead of rawLeads) {
+    const existing = leadsByPhone.get(lead.phone)
+    if (!existing || new Date(lead.updated_at) > new Date(existing.updated_at)) {
+      leadsByPhone.set(lead.phone, lead)
+    }
+  }
+  const leads = Array.from(leadsByPhone.values())
 
   // Busca todas as mensagens já enviadas para este grupo
   const leadIds = leads.map((l: any) => l.id)
@@ -267,11 +277,14 @@ async function processGrupo(
     }
   }
 
+  // Set de phones que já foram enviados nesta execução (evita duplicata cross-ID)
+  const phonesSentThisRun = new Set<string>()
+
   let needsDelay = false
 
   for (const lead of leads) {
     // REGRA DE OURO: O lead NÃO pode receber 2 ou mais mensagens no mesmo dia
-    if (sentTodayMap.get(lead.id)) {
+    if (sentTodayMap.get(lead.id) || phonesSentThisRun.has(lead.phone)) {
       result.skipped++
       continue
     }
@@ -291,12 +304,8 @@ async function processGrupo(
       await sleep(SEND_INTERVAL_MS)
     }
 
-    // Enviar mensagem via Evolution API
+    // PASSO 1: Registra no banco ANTES de enviar (evita duplicata por race condition)
     try {
-      const text = targetStep.getTemplate(lead.name)
-      await sendTextMessage(lead.phone, text)
-
-      // Registra o envio no banco
       const { error: insertError } = await supabaseAdmin
         .from('followup_messages_sent')
         .insert({
@@ -308,18 +317,25 @@ async function processGrupo(
 
       if (insertError) {
         if (insertError.code === '23505') {
+          // Outra execução já registrou — NÃO envia de novo
           result.skipped++
         } else {
           result.errors.push(
             `Erro ao registrar envio ${grupo}/MSG${targetStep.msgNumber} para ${lead.phone}: ${insertError.message}`
           )
         }
-      } else {
-        onSent(result)
-        sentTodayMap.set(lead.id, true)
-        sentSteps.add(targetStep.msgNumber)
-        needsDelay = true
+        continue
       }
+
+      // PASSO 2: Só envia se o INSERT foi bem-sucedido (garantia de exclusividade)
+      const text = targetStep.getTemplate(lead.name)
+      await sendTextMessage(lead.phone, text)
+
+      onSent(result)
+      sentTodayMap.set(lead.id, true)
+      phonesSentThisRun.add(lead.phone)
+      sentSteps.add(targetStep.msgNumber)
+      needsDelay = true
     } catch (err: any) {
       result.errors.push(
         `Erro ao enviar ${grupo}/MSG${targetStep.msgNumber} para ${lead.phone}: ${err.message}`

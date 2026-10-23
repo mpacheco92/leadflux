@@ -4,16 +4,17 @@ const EVOLUTION_GLOBAL_API_KEY = process.env.EVOLUTION_API_KEY!
 // Número de WhatsApp conectado à instância de envio de follow-ups
 const CONNECTED_NUMBER = '5522981695694'
 
-// Cache em memória do token da instância para não precisar consultar a cada envio
+// Cache em memória do token e nome da instância
 let cachedInstanceToken: string | null = null
+let cachedInstanceName: string | null = null
 
 /**
- * Busca o token da instância conectada ao número configurado na Evolution Go.
+ * Busca o token e nome da instância conectada ao número configurado na Evolution Go.
  * Mesmo que a instância seja renomeada, ela é identificada pelo jid (número conectado).
  */
-async function getInstanceToken(): Promise<string> {
-  if (cachedInstanceToken) {
-    return cachedInstanceToken
+async function getInstanceInfo(): Promise<{ token: string; name: string }> {
+  if (cachedInstanceToken && cachedInstanceName) {
+    return { token: cachedInstanceToken, name: cachedInstanceName }
   }
 
   const res = await fetch(`${EVOLUTION_API_URL}/instance/all`, {
@@ -41,14 +42,15 @@ async function getInstanceToken(): Promise<string> {
   }
 
   cachedInstanceToken = instance.token
-  return instance.token
+  cachedInstanceName = instance.name || instance.instanceName || instance.id
+  return { token: cachedInstanceToken!, name: cachedInstanceName! }
 }
 
 /**
  * Envia uma mensagem de texto simples via Evolution Go API.
  */
 export async function sendTextMessage(phone: string, text: string): Promise<any> {
-  const instanceToken = await getInstanceToken()
+  const { token, name } = await getInstanceInfo()
 
   // Garante DDI 55 e apenas dígitos
   const cleanPhone = phone.replace(/\D/g, '')
@@ -58,9 +60,10 @@ export async function sendTextMessage(phone: string, text: string): Promise<any>
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      apikey: instanceToken,
+      apikey: token,
     },
     body: JSON.stringify({
+      instance: name,
       number: formattedPhone,
       text,
     }),
@@ -70,6 +73,7 @@ export async function sendTextMessage(phone: string, text: string): Promise<any>
     // Se o token falhar por algum motivo, limpa o cache
     if (res.status === 401 || res.status === 403) {
       cachedInstanceToken = null
+      cachedInstanceName = null
     }
     const errBody = await res.text()
     throw new Error(`Erro ao enviar mensagem: ${res.status} - ${errBody}`)
